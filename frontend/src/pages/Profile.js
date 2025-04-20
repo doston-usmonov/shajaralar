@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
@@ -26,12 +26,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchPeople = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:8000/api/people', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const response = await api.get('/people');
         setPeople(response.data);
       } catch (err) {
         console.error('Error fetching people:', err);
@@ -56,25 +51,15 @@ const Profile = () => {
     setLoading(true);
     
     try {
-      const token = localStorage.getItem('token');
-      
       // Create the new person
-      const personResponse = await axios.post('http://localhost:8000/api/people', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const personResponse = await api.post('/people', formData);
       
       // If a parent is selected, create a relation
       if (selectedParent) {
-        await axios.post('http://localhost:8000/api/relations', {
+        await api.post('/relations', {
           parent_id: selectedParent,
           child_id: personResponse.data.id,
           relation_type: relationType
-        }, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
         });
       }
       
@@ -107,12 +92,7 @@ const Profile = () => {
     
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/api/people/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      await api.delete(`/people/${id}`);
       
       // Update people list after deletion
       setPeople(people.filter(person => person.id !== id));

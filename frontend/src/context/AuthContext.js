@@ -1,109 +1,129 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [authError, setAuthError] = useState(null);
 
-  // Check if user is already logged in
+  // Auth statusini tekshirish
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetchUser(token);
-    } else {
-      setLoading(false);
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        // Token bilan user ma'lumotlarini olish
+        const response = await api.get('/user');
+        setUser(response.data);
+        setAuthError(null);
+      } catch (error) {
+        console.error('Authentication check failed:', error);
+        localStorage.removeItem('token');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  const fetchUser = async (token) => {
+  // Login funksiyasi
+  const login = async (email, password) => {
     try {
-      const response = await axios.get('http://localhost:8000/api/user', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      setLoading(true);
+      // Login so'rovi
+      const response = await api.post('/login', {
+        email,
+        password
       });
-      setUser(response.data);
+      
+      // Token saqlash
+      localStorage.setItem('token', response.data.token);
+      
+      // User ma'lumotlarini state-ga qo'shish
+      setUser(response.data.user);
+      setAuthError(null);
+      
+      return response.data;
     } catch (error) {
-      console.error('Failed to fetch user:', error);
-      localStorage.removeItem('token');
+      console.error('Login failed:', error);
+      setAuthError(error.response?.data?.message || 'Login failed. Please check your credentials.');
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (email, password) => {
-    setError(null);
+  // Ro'yxatdan o'tish funksiyasi
+  const register = async (name, email, password, password_confirmation) => {
     try {
-      const response = await axios.post('http://localhost:8000/api/login', {
-        email,
-        password
-      });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      return true;
-    } catch (error) {
-      setError(
-        error.response?.data?.message || 
-        error.response?.data?.errors?.email?.[0] || 
-        'Failed to login'
-      );
-      return false;
-    }
-  };
-
-  const register = async (name, email, password) => {
-    setError(null);
-    try {
-      const response = await axios.post('http://localhost:8000/api/register', {
+      setLoading(true);
+      // Register so'rovi
+      const response = await api.post('/register', {
         name,
         email,
-        password
+        password,
+        password_confirmation
       });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      return true;
+      
+      // Token saqlash
+      localStorage.setItem('token', response.data.token);
+      
+      // User ma'lumotlarini state-ga qo'shish
+      setUser(response.data.user);
+      setAuthError(null);
+      
+      return response.data;
     } catch (error) {
-      setError(
-        error.response?.data?.message || 
-        error.response?.data?.errors?.email?.[0] || 
-        'Failed to register'
-      );
-      return false;
+      console.error('Registration failed:', error);
+      setAuthError(error.response?.data?.message || 'Registration failed. Please try again.');
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Logout funksiyasi
   const logout = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        await axios.post('http://localhost:8000/api/logout', {}, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+      setLoading(true);
+      
+      // Logout so'rovi (optional, token-based auth bo'lganligi uchun)
+      if (user) {
+        await api.post('/logout');
       }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
+      
+      // Local storage-dan tokenni o'chirish
       localStorage.removeItem('token');
+      
+      // User state-ni o'chirish
       setUser(null);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Context value
   const value = {
     user,
     loading,
-    error,
+    authError,
     login,
     register,
-    logout
+    logout,
+    isAuthenticated: !!user
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

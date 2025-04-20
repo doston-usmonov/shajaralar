@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
 const PersonDetail = () => {
   const { id } = useParams();
@@ -37,15 +37,9 @@ const PersonDetail = () => {
     const fetchPersonDetails = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
         
         // Fetch person data
-        const personResponse = await axios.get(`http://localhost:8000/api/people/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        
+        const personResponse = await api.get(`/people/${id}`);
         setPerson(personResponse.data);
         setFormData({
           full_name: personResponse.data.full_name || '',
@@ -56,19 +50,11 @@ const PersonDetail = () => {
         });
         
         // Fetch parents
-        const parentsResponse = await axios.get(`http://localhost:8000/api/people/${id}/parents`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const parentsResponse = await api.get(`/people/${id}/parents`);
         setParents(parentsResponse.data);
         
         // Fetch children
-        const childrenResponse = await axios.get(`http://localhost:8000/api/people/${id}/children`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const childrenResponse = await api.get(`/people/${id}/children`);
         setChildren(childrenResponse.data);
         
       } catch (err) {
@@ -100,14 +86,8 @@ const PersonDetail = () => {
     setLoading(true);
     
     try {
-      const token = localStorage.getItem('token');
-      
       // Update the person
-      const response = await axios.put(`http://localhost:8000/api/people/${id}`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await api.put(`/people/${id}`, formData);
       
       setPerson(response.data);
       setEditing(false);
@@ -125,14 +105,8 @@ const PersonDetail = () => {
     setLoading(true);
     
     try {
-      const token = localStorage.getItem('token');
-      
       // Add a child using the new endpoint
-      const response = await axios.post(`http://localhost:8000/api/people/${id}/children`, childFormData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await api.post(`/people/${id}/children`, childFormData);
       
       // Add the new child to the children list
       setChildren([...children, response.data.child]);
@@ -161,12 +135,7 @@ const PersonDetail = () => {
     
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/api/people/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      await api.delete(`/people/${id}`);
       
       // Redirect back to profile page after deletion
       navigate('/profile');
@@ -436,7 +405,7 @@ const PersonDetail = () => {
               className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 01-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
               Farzand qo'shish
             </button>
