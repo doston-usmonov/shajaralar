@@ -206,7 +206,7 @@ const FamilyTreeView = ({ data, readOnly = false }) => {
     // Create tree layout - optimize for classic family tree look
     const treeLayout = d3.tree()
       .size([dimensions.width - 150, dimensions.height * 1.5])
-      .nodeSize([160, 80]) // Wider spacing horizontally
+      .nodeSize([160, 150]) // Increase vertical spacing (y-axis)
       .separation((a, b) => {
         // More consistent spacing like in the image
         return 1.2;
@@ -269,8 +269,8 @@ const FamilyTreeView = ({ data, readOnly = false }) => {
         // First go down from parent, then across, then down to child
         return `
           M ${sourceX},${sourceY + 40}
-          L ${sourceX},${sourceY + 40 + (targetY - sourceY - 80) / 2}
-          L ${targetX},${sourceY + 40 + (targetY - sourceY - 80) / 2}
+          L ${sourceX},${sourceY + 40 + (targetY - sourceY - 150) / 2}
+          L ${targetX},${sourceY + 40 + (targetY - sourceY - 150) / 2}
           L ${targetX},${targetY - 40}
         `;
       })
