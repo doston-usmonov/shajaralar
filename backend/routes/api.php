@@ -24,6 +24,10 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
 
+// Shared (public) tree routes - these don't require authentication
+Route::get('/share/{token}/tree', [PersonController::class, 'getSharedTree']);
+Route::get('/share/{token}/person', [PersonController::class, 'getSharedPerson']);
+
 // Protected API routes
 Route::middleware('auth:sanctum')->group(function () {
     // User routes
@@ -34,6 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/people', PersonController::class);
     Route::get('/people/{id}/tree', [PersonController::class, 'getTree']);
     Route::post('/people/{id}/children', [PersonController::class, 'addChild']); // Yangi tezkor farzand qo'shish yo'li
+    Route::put('/people/{id}/toggle-public', [PersonController::class, 'togglePublic']);
+    Route::post('/people/{id}/toggle-public', [PersonController::class, 'togglePublic']); // Qo'shimcha POST endpoint
     
     // Relation routes
     Route::apiResource('/relations', RelationController::class);
