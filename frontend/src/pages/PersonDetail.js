@@ -18,6 +18,7 @@ const PersonDetail = () => {
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(isNewPerson); // If new person, automatically enter edit mode
   const [showAddChildModal, setShowAddChildModal] = useState(false);
+  const [showAddParentModal, setShowAddParentModal] = useState(false);
   const [shareUrl, setShareUrl] = useState(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showTreeTab, setShowTreeTab] = useState(false); // Daraxt ko'rinishi holatini saqlash
@@ -34,6 +35,16 @@ const PersonDetail = () => {
 
   // Form state for adding a child
   const [childFormData, setChildFormData] = useState({
+    full_name: '',
+    birth_date: '',
+    death_date: '',
+    biography: '',
+    photo_url: '',
+    relation_type: 'biological'
+  });
+
+  // Form state for adding a parent
+  const [parentFormData, setParentFormData] = useState({
     full_name: '',
     birth_date: '',
     death_date: '',
@@ -111,6 +122,12 @@ const PersonDetail = () => {
     setChildFormData({ ...childFormData, [name]: value });
   };
 
+  // Handle input change for parent form
+  const handleParentInputChange = (e) => {
+    const { name, value } = e.target;
+    setParentFormData({ ...parentFormData, [name]: value });
+  };
+
   // Handle form submission to update person
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,6 +179,49 @@ const PersonDetail = () => {
     } catch (err) {
       console.error('Error adding child:', err);
       setError('Farzand qo\'shishda xatolik yuz berdi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle adding a new parent
+  const handleAddParent = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      // Create new parent person
+      const parentResponse = await api.post('/people', {
+        full_name: parentFormData.full_name,
+        birth_date: parentFormData.birth_date,
+        death_date: parentFormData.death_date,
+        biography: parentFormData.biography,
+        photo_url: parentFormData.photo_url
+      });
+      
+      // Create relation with current person (parent_id is the new person, child_id is current person)
+      await api.post('/relations', {
+        parent_id: parentResponse.data.id,
+        child_id: id,
+        relation_type: parentFormData.relation_type
+      });
+      
+      // Add the new parent to the parents list
+      setParents([...parents, parentResponse.data]);
+      
+      // Reset form and close modal
+      setParentFormData({
+        full_name: '',
+        birth_date: '',
+        death_date: '',
+        biography: '',
+        photo_url: '',
+        relation_type: 'biological'
+      });
+      setShowAddParentModal(false);
+    } catch (err) {
+      console.error('Error adding parent:', err);
+      setError('Ota-ona qo\'shishda xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -668,9 +728,22 @@ const PersonDetail = () => {
           <div className="flex flex-wrap gap-6">
             {/* Parents */}
             <div className="bg-white shadow overflow-hidden sm:rounded-lg flex-1 min-w-[300px]">
-              <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg font-medium text-gray-900">Ota-onalar</h3>
-                <p className="mt-1 max-w-2xl text-sm text-gray-500">Bu shaxsning ota-onalari</p>
+              <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-semibold">Ota-onalar</h2>
+                  <p className="mt-1 max-w-2xl text-sm text-gray-500">Bu shaxsning ota-onalari</p>
+                </div>
+                {parents.length === 0 && !isNewPerson && (
+                  <button
+                    onClick={() => setShowAddParentModal(true)}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Ota-ona qo'shish
+                  </button>
+                )}
               </div>
               <div className="border-t border-gray-200">
                 {loading ? (
@@ -728,7 +801,7 @@ const PersonDetail = () => {
                   className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 01-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
                   </svg>
                   Farzand qo'shish
                 </button>
@@ -856,6 +929,105 @@ const PersonDetail = () => {
                       className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                     >
                       {loading ? 'Saqlanmoqda...' : 'Farzand qo\'shish'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          
+          {/* Add Parent Modal */}
+          {showAddParentModal && (
+            <div className="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center">
+              <div className="fixed inset-0 bg-black opacity-50"></div>
+              <div className="relative bg-white rounded-lg p-6 max-w-md w-full mx-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Yangi ota-ona qo'shish</h3>
+                  <button 
+                    onClick={() => setShowAddParentModal(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <form onSubmit={handleAddParent} className="space-y-4">
+                  <div>
+                    <label htmlFor="parent_full_name" className="block text-sm font-medium text-gray-700">
+                      To'liq ism *
+                    </label>
+                    <input
+                      type="text"
+                      name="full_name"
+                      id="parent_full_name"
+                      required
+                      value={parentFormData.full_name}
+                      onChange={handleParentInputChange}
+                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="parent_birth_date" className="block text-sm font-medium text-gray-700">
+                      Tug'ilgan sana
+                    </label>
+                    <input
+                      type="date"
+                      name="birth_date"
+                      id="parent_birth_date"
+                      value={parentFormData.birth_date}
+                      onChange={handleParentInputChange}
+                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="parent_death_date" className="block text-sm font-medium text-gray-700">
+                      Vafot etgan sana
+                    </label>
+                    <input
+                      type="date"
+                      name="death_date"
+                      id="parent_death_date"
+                      value={parentFormData.death_date}
+                      onChange={handleParentInputChange}
+                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="parent_relation_type" className="block text-sm font-medium text-gray-700">
+                      Munosabat turi
+                    </label>
+                    <select
+                      name="relation_type"
+                      id="parent_relation_type"
+                      value={parentFormData.relation_type}
+                      onChange={handleParentInputChange}
+                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    >
+                      <option value="biological">Biologik</option>
+                      <option value="adopted">Farzandlikka olgan</option>
+                      <option value="step">O'gay ota/ona</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex justify-end pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddParentModal(false)}
+                      className="mr-2 bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Bekor qilish
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    >
+                      {loading ? 'Saqlanmoqda...' : 'Ota-ona qo\'shish'}
                     </button>
                   </div>
                 </form>
